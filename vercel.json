@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "hmnkeysite.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "hmnkeysite.py" }
+  ]
+}
