@@ -99,7 +99,7 @@ def index():
         </style>
         <div class="center">
             <form method="post">
-                Прокси: <input type="text" name="proxy"><br>
+                HTTP Прокси: <input type="text" name="proxy"><br>
                 Электронная почта: <input type="email" name="email" required><br>
                 <input type="submit" value="Отправить">
             </form>
