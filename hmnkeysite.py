@@ -1,3 +1,27 @@
+from flask import Flask, render_template_string
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return render_template_string('''
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>My Website</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    </head>
+    <body>
+        <h1>Welcome to My Website</h1>
+    </body>
+    </html>
+    ''')
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
+
 from flask import Flask, request, render_template_string
 from os import system
 import requests
