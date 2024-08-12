@@ -36,18 +36,33 @@ def index():
                 return f'Ошибка при отправке запроса: {e}'
 
             if 'Ваш код выслан на почту' in response.text:
-                if confirm:
-                    try:
-                        response = requests.get(confirm, headers=headers, proxies=proxies)
-                        response.raise_for_status()
-                        if 'Спасибо' in response.text:
-                            return 'Почта подтверждена. Код отправлен на ваш email.'
-                        else:
-                            return 'Ссылка невалидная, повторите попытку.'
-                    except requests.exceptions.RequestException as e:
-                        return f'Ошибка при подтверждении: {e}'
-                else:
-                    return 'Код выслан на почту, но подтверждение не выполнено, так как ссылка не была предоставлена.'
+                return render_template_string('''
+                    <style>
+                        .center {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                        }
+                        form {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                        }
+                        input, button {
+                            margin: 5px;
+                        }
+                    </style>
+                    <div class="center">
+                        <form method="post">
+                            Ссылка для подтверждения: <input type="text" name="confirm"><br>
+                            <input type="hidden" name="proxy" value="{{ proxy }}">
+                            <input type="hidden" name="email" value="{{ email }}">
+                            <input type="submit" value="Подтвердить">
+                        </form>
+                    </div>
+                ''', proxy=proxy, email=email)
             else:
                 return f'Указанная почта не подходит для получения тестового периода. Ответ сервера: {response.text}'
         else:
@@ -75,7 +90,6 @@ def index():
             <form method="post">
                 Прокси: <input type="text" name="proxy"><br>
                 Электронная почта: <input type="email" name="email" required><br>
-                Ссылка для подтверждения: <input type="text" name="confirm"><br>
                 <input type="submit" value="Отправить">
             </form>
         </div>
