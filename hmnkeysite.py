@@ -1,23 +1,12 @@
-from flask import Flask, render_template
-from flask_frozen import Freezer
-
-app = Flask(__name__)
-freezer = Freezer(app)
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-if __name__ == '__main__':
-    freezer.freeze()
-
 from flask import Flask, request, render_template_string
+from flask_frozen import Freezer
 from os import system
 import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
+freezer = Freezer(app)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -112,12 +101,12 @@ def index():
         </style>
         <div class="center">
             <form method="post">
-                HTTP Прокси: <input type="text" name="proxy"><br>
-                Электронная почта: <input type="email" name="email" required><br>
-                <input type="submit" value="Отправить">
+                Прокси: <input type="text" name="proxy"><br>
+                Email: <input type="text" name="email"><br>
+                <input type="submit" value="Получить код">
             </form>
         </div>
     ''')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    freezer.freeze()
