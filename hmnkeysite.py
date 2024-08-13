@@ -1,3 +1,7 @@
+   ''')
+
+if __name__ == '__main__':
+    freezer.freeze()
 from flask import Flask, request, render_template_string
 from flask_frozen import Freezer
 from os import system
@@ -38,46 +42,39 @@ def index():
                 except requests.exceptions.RequestException as e:
                     return f'Ошибка при отправке запроса: {e}'
 
-                if 'Ваш код выслан на почту' in response.text:
-                    return render_template_string('''
-                        <style>
-                            .center {
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                                justify-content: center;
-                                height: 100vh;
-                            }
-                            form {
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                            }
-                            input, button {
-                                margin: 5px;
-                            }
-                        </style>
-                        <div class="center">
-                            <form method="post">
-                                Ссылка для подтверждения: <input type="text" name="confirm"><br>
-                                <input type="hidden" name="proxy" value="{{ proxy }}">
-                                <input type="hidden" name="email" value="{{ email }}">
-                                <input type="submit" value="Подтвердить">
-                            </form>
-                        </div>
-                    ''', proxy=proxy, email=email)
-                else:
-                    return f'Указанная почта не подходит для получения тестового периода. Ответ сервера: {response.text}'
+                return render_template_string('''
+                    <style>
+                        .center {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                        }
+                        form {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                        }
+                        input, button {
+                            margin: 5px;
+                        }
+                    </style>
+                    <div class="center">
+                        <form method="post">
+                            <p>Ссылка подтверждения была отправлена на указанную почту. Перейдите по ней чтобы вам пришёл код на почту.</p>
+                            <input type="hidden" name="proxy" value="{{ proxy }}">
+                            <input type="hidden" name="email" value="{{ email }}">
+                            <input type="submit" value="Подтвердить">
+                        </form>
+                    </div>
+                ''', proxy=proxy, email=email)
             else:
                 return 'Невозможно получить тестовый период'
         else:
             try:
                 response = requests.get(confirm, headers=headers, proxies=proxies)
                 response.raise_for_status()
-                if 'Спасибо' in response.text:
-                    return 'Почта подтверждена. Код отправлен на ваш email.'
-                else:
-                    return 'Ссылка невалидная, повторите попытку.'
             except requests.exceptions.RequestException as e:
                 return f'Ошибка при подтверждении: {e}'
 
