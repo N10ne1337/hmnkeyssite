@@ -64,7 +64,7 @@ def index():
                                 <p>Ссылка подтверждения была отправлена на указанную почту. Перейдите по ней чтобы вам пришёл код на почту.</p>
                                 <input type="hidden" name="proxy" value="{{ proxy }}">
                                 <input type="hidden" name="email" value="{{ email }}">
-                                <input type="hidden" name="confirm" value="true">
+                                <input type="hidden" name="confirm" value="https://hidxxx.name/demo/success/">
                                 <input type="submit" value="Подтвердить">
                             </form>
                         </div>
