@@ -39,7 +39,7 @@ def index():
                     return f'Ошибка при отправке запроса: {e}'
 
                 soup = BeautifulSoup(response.text, 'html.parser')
-                if soup.find(text="Ваш код выслан на [email protected]"):
+                if soup.find(text="Ваш код выслан на почту"):
                     return render_template_string('''
                         <style>
                             .center {
