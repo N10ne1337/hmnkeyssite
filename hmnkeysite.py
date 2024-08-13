@@ -39,7 +39,8 @@ def index():
                     return f'Ошибка при отправке запроса: {e}'
 
                 soup = BeautifulSoup(response.text, 'html.parser')
-                if soup.find(text="Ваш код выслан на почту"):
+                confirmation_message = soup.find('h2', {'class': 'title'}).get_text(strip=True)
+                if "Ваш код выслан на" in confirmation_message:
                     return render_template_string('''
                         <style>
                             .center {
