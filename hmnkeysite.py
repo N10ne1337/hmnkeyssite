@@ -64,6 +64,7 @@ def index():
                                 <p>Ссылка подтверждения была отправлена на указанную почту. Перейдите по ней чтобы вам пришёл код на почту.</p>
                                 <input type="hidden" name="proxy" value="{{ proxy }}">
                                 <input type="hidden" name="email" value="{{ email }}">
+                                <input type="hidden" name="confirm" value="true">
                                 <input type="submit" value="Подтвердить">
                             </form>
                         </div>
@@ -76,6 +77,7 @@ def index():
             try:
                 response = requests.get(confirm, headers=headers, proxies=proxies)
                 response.raise_for_status()
+                return 'Почта подтверждена. Код отправлен на ваш email.'
             except requests.exceptions.RequestException as e:
                 return f'Ошибка при подтверждении: {e}'
 
