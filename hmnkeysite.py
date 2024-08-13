@@ -38,7 +38,8 @@ def index():
                 except requests.exceptions.RequestException as e:
                     return f'Ошибка при отправке запроса: {e}'
 
-                if 'Ваш код выслан на [email protected]' in response.text:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                if soup.find(text="Ваш код выслан на [email protected]"):
                     return render_template_string('''
                         <style>
                             .center {
