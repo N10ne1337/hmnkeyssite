@@ -188,10 +188,10 @@ def get_vpn_config():
         soup = BeautifulSoup(response.text, 'html.parser')
         
         try:
-            # Извлекаем данные конфигурации
-            config_data = soup.find('div', {'class': 'config-data'})
+            # Попробуем найти и извлечь данные конфигурации
+            config_data = soup.find_all('pre')
             if config_data:
-                config_html = str(config_data)
+                config_html = ''.join(str(item) for item in config_data)
             else:
                 app.logger.warning('Configuration data not found')
                 return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти данные конфигурации на сайте</div></div>')
