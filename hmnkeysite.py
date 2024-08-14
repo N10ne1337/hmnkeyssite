@@ -70,23 +70,6 @@ def index():
                             </div>
                             <a href="/" class="btn btn-primary">Домой</a>
                         </div>
-                        <div class="container mt-3">
-                            <form id="vpnForm" method="post" action="/get_vpn_config">
-                                <div class="form-group">
-                                    <label for="access_code">Код доступа из письма</label>
-                                    <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Введите код доступа">
-                                </div>
-                                <div class="form-group">
-                                    <label for="obfuscation_method">Метод обфускации</label>
-                                    <select class="form-control" id="obfuscation_method" name="obfuscation_method">
-                                        <option value="0">Без обфускации (не работает в России)</option>
-                                        <option value="1">tls-crypt (требует OpenVPN 2.4+)</option>
-                                        <option value="2">tls-crypt-v2 (требует OpenVPN 2.5+)</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Получить конфигурацию VPN для роутера</button>
-                            </form>
-                        </div>
                       </body>
                     </html>
                 ''')
@@ -190,6 +173,9 @@ def get_vpn_config():
             <div class="container mt-5">
                 <h2>Форма для получения конфигурации VPN</h2>
                 {form_html}
+                <div class="form-group mt-3">
+                    <button class="btn btn_1 blue_btn js-form_submit_btn" type="submit"> Получить настройки </button>
+                </div>
             </div>
           </body>
         </html>
