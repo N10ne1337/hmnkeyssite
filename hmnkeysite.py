@@ -3,6 +3,7 @@ from flask_frozen import Freezer
 import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
+import re
 
 app = Flask(__name__)
 freezer = Freezer(app)
@@ -37,7 +38,9 @@ def index():
 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 confirmation_message = soup.find('h2', {'class': 'title'}).get_text(strip=True)
-                if confirmation_message.startswith("Ваш код выслан") and " на " in confirmation_message:
+                
+                # Используем регулярное выражение для проверки текста
+                if re.match(r'^Ваш код выслан\s*на\s*', confirmation_message):
                     return render_template_string('''
                         <!doctype html>
                         <html lang="en">
