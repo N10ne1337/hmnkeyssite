@@ -193,6 +193,7 @@ def get_vpn_config():
         if form:
             app.logger.debug('Found VPN form')
             form_html = str(form)
+            form_html = form_html.replace('<button', '<button class="btn btn_1 blue_btn js-form_submit_btn" type="submit"> Получить настройки </button>')
         else:
             app.logger.warning('VPN form not found')
             return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти форму VPN на сайте</div></div>')
