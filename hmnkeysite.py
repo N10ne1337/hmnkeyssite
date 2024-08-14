@@ -1,6 +1,5 @@
 from flask import Flask, request, render_template_string
 from flask_frozen import Freezer
-from os import system
 import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
@@ -24,88 +23,93 @@ def index():
                 demo_page = requests.get('https://hidxxx.name/demo/', headers=headers, proxies=proxies)
                 demo_page.raise_for_status()
             except requests.exceptions.RequestException as e:
-                return f'Ошибка доступа к сайту: {e}'
+                return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка доступа к сайту: {{ e }}</div></div>', e=e)
 
             soup = BeautifulSoup(demo_page.text, 'html.parser')
             email_input = soup.find('input', {'class': 'input_text_field', 'name': 'demo_mail'})
 
             if email_input:
                 try:
-                    response = requests.post('https://hidxxx.name/demo/success/', data={
-                        "demo_mail": email
-                    }, headers=headers, proxies=proxies)
+                    response = requests.post('https://hidxxx.name/demo/success/', data={"demo_mail": email}, headers=headers, proxies=proxies)
                     response.raise_for_status()
                 except requests.exceptions.RequestException as e:
-                    return f'Ошибка при отправке запроса: {e}'
+                    return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 confirmation_message = soup.find('h2', {'class': 'title'}).get_text(strip=True)
                 if "Ваш код выслан на" in confirmation_message:
                     return render_template_string('''
-                        <style>
-                            .center {
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                                justify-content: center;
-                                height: 100vh;
-                            }
-                            form {
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                            }
-                            input, button {
-                                margin: 5px;
-                            }
-                        </style>
-                        <div class="center">
-                            <form method="post">
-                                <p>Ссылка подтверждения была отправлена на указанную почту. Перейдите по ней чтобы вам пришёл код на почту.</p>
-                                <input type="hidden" name="proxy" value="{{ proxy }}">
-                                <input type="hidden" name="email" value="{{ email }}">
-                                <input type="hidden" name="confirm" value="https://hidxxx.name/demo/success/">
-                                <input type="submit" value="Подтвердить">
-                            </form>
-                        </div>
+                        <!doctype html>
+                        <html lang="en">
+                          <head>
+                            <meta charset="utf-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+                            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+                            <title>Подтверждение Email</title>
+                          </head>
+                          <body>
+                            <div class="container mt-5">
+                                <div class="alert alert-info" role="alert">
+                                    Ссылка подтверждения была отправлена на указанную почту. Перейдите по ней чтобы вам пришёл код на почту.
+                                </div>
+                                <form method="post">
+                                    <input type="hidden" name="proxy" value="{{ proxy }}">
+                                    <input type="hidden" name="email" value="{{ email }}">
+                                    <input type="hidden" name="confirm" value="https://hidxxx.name/demo/success/">
+                                    <button type="submit" class="btn btn-primary">Подтвердить</button>
+                                </form>
+                            </div>
+                          </body>
+                        </html>
                     ''', proxy=proxy, email=email)
                 else:
-                    return f'Указанная почта не подходит для получения тестового периода. Ответ сервера: {response.text}'
+                    return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Указанная почта не подходит для получения тестового периода. Ответ сервера: {{ response.text }}</div></div>', response=response)
             else:
-                return 'Невозможно получить тестовый период'
+                return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Невозможно получить тестовый период</div></div>')
         else:
             try:
                 response = requests.get(confirm, headers=headers, proxies=proxies)
                 response.raise_for_status()
-                return 'Почта подтверждена. Код отправлен на ваш email.'
+                return render_template_string('<div class="container"><div class="alert alert-success" role="alert">Почта подтверждена. Код отправлен на ваш email.</div></div>')
             except requests.exceptions.RequestException as e:
-                return f'Ошибка при подтверждении: {e}'
+                return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при подтверждении: {{ e }}</div></div>', e=e)
 
     return render_template_string('''
-        <style>
-            .center {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100vh;
-            }
-            form {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            input, button {
-                margin: 5px;
-            }
-        </style>
-        <div class="center">
-            <form method="post">
-                Прокси: <input type="text" name="proxy"><br>
-                Email: <input type="text" name="email"><br>
-                <input type="submit" value="Получить код">
-            </form>
-        </div>
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+            <title>Получить код</title>
+          </head>
+          <body>
+            <div class="container mt-5">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Получить код
+                            </div>
+                            <div class="card-body">
+                                <form method="post">
+                                    <div class="form-group">
+                                        <label for="proxy">Прокси</label>
+                                        <input type="text" class="form-control" id="proxy" name="proxy" placeholder="Введите прокси">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="email">Email</label>
+                                        <input type="email" class="form-control" id="email" name="email" placeholder="Введите email">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Получить код</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </body>
+        </html>
     ''')
 
 if __name__ == '__main__':
