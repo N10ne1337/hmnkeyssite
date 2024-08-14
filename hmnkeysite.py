@@ -27,10 +27,14 @@ def index():
             app.logger.error(f"Error accessing the site: {e}")
             return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка доступа к сайту: {{ e }}</div></div>', e=e)
 
+        app.logger.debug('Accessed demo page successfully')
+
         soup = BeautifulSoup(demo_page.text, 'html.parser')
         email_input = soup.find('input', {'class': 'input_text_field', 'name': 'demo_mail'})
 
         if email_input:
+            app.logger.debug(f'Found email input field: {email_input}')
+
             try:
                 response = requests.post('https://hidxxx.name/demo/success/', data={"demo_mail": email}, headers=headers, proxies=proxies)
                 response.raise_for_status()
@@ -38,8 +42,11 @@ def index():
                 app.logger.error(f"Error sending request: {e}")
                 return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
 
+            app.logger.debug('Email sent successfully')
+
             soup = BeautifulSoup(response.text, 'html.parser')
             confirmation_message = soup.find('h2', {'class': 'title'}).get_text(strip=True)
+            app.logger.debug(f'Confirmation message: {confirmation_message}')
             
             # Используем регулярное выражение для проверки текста
             if re.match(r'^Ваш код выслан\s*на\s*', confirmation_message):
@@ -74,7 +81,7 @@ def index():
                 ''')
             else:
                 app.logger.warning(f'Unexpected confirmation message: {confirmation_message}')
-                return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Указанная почта не подходит для получения тестового периода. Ответ сервера: {{ response.text }}</div></div>', response=response)
+                return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Указанная почта не подходит для получения тестового периода. Ответ сервера: {{ confirmation_message }}</div></div>', confirmation_message=confirmation_message)
         else:
             app.logger.warning('Email input field not found.')
             return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Невозможно получить тестовый период</div></div>')
@@ -137,6 +144,8 @@ def get_vpn_config():
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error sending request to VPN router page: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
+
+    app.logger.debug('Access code sent successfully, waiting for response')
 
     # Ждем 3 секунды для обработки на сервере
     time.sleep(3)
