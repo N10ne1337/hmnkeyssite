@@ -43,6 +43,7 @@ def index():
             
             # Используем регулярное выражение для проверки текста
             if re.match(r'^Ваш код выслан\s*на\s*', confirmation_message):
+                app.logger.debug('Confirmation message received, code sent to email.')
                 return render_template_string('''
                     <!doctype html>
                     <html lang="en">
@@ -72,8 +73,10 @@ def index():
                     </html>
                 ''')
             else:
+                app.logger.warning(f'Unexpected confirmation message: {confirmation_message}')
                 return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Указанная почта не подходит для получения тестового периода. Ответ сервера: {{ response.text }}</div></div>', response=response)
         else:
+            app.logger.warning('Email input field not found.')
             return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Невозможно получить тестовый период</div></div>')
 
     return render_template_string('''
@@ -124,7 +127,6 @@ def index():
 def get_vpn_config():
     access_code = request.form.get('access_code')
 
-    # Используем UserAgent для заголовков
     ua = UserAgent()
     headers = {'User-Agent': ua.random}
 
@@ -150,7 +152,7 @@ def get_vpn_config():
         description_tag = soup.find('span', class_='account_info')
         description = description_tag.text.strip() if description_tag else 'Не удалось найти описание'
 
-        server_tag = soup.find('span', class_='account_serverlist')
+        server_tag = soup.find('span', class_='account_serverlist').find('span')
         server = server_tag.text.strip() if server_tag else 'Не удалось найти сервер'
 
         username_tag = soup.find('span', class_='account_number')
