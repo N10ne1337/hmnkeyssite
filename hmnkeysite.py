@@ -189,12 +189,17 @@ def get_vpn_config():
         
         try:
             # Попробуем найти и извлечь данные конфигурации
-            config_data = soup.find_all('pre')
+            config_data = soup.find_all('pre')  # Замените на другой тег, если необходимо
             if config_data:
                 config_html = ''.join(str(item) for item in config_data)
             else:
-                app.logger.warning('Configuration data not found')
-                return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти данные конфигурации на сайте</div></div>')
+                config_data = soup.find_all('div', class_='config-class')  # Замените 'config-class' на правильный класс
+                if config_data:
+                    config_html = ''.join(str(item) for item in config_data)
+                else:
+                    app.logger.warning('Configuration data not found in <pre> or <div class="config-class">')
+                    return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти данные конфигурации на сайте</div></div>')
+
         except Exception as e:
             app.logger.error(f"Error parsing configuration data: {e}")
             return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации: {{ e }}</div></div>', e=e)
