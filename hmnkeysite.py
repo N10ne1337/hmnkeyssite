@@ -69,6 +69,7 @@ def index():
                                 Ссылка подтверждения была отправлена на указанную почту. Перейдите по ней чтобы вам пришёл код на почту.
                             </div>
                             <a href="/" class="btn btn-primary">Домой</a>
+                            <a href="/vpn_config_form" class="btn btn-secondary mt-3">Получить конфигурацию для установки VPN на роутер</a>
                         </div>
                       </body>
                     </html>
@@ -124,10 +125,49 @@ def index():
         </html>
     ''')
 
-@app.route('/get_vpn_config', methods=['POST'])
+@app.route('/vpn_config_form', methods=['GET', 'POST'])
+def vpn_config_form():
+    if request.method == 'POST':
+        access_code = request.form.get('access_code')
+        obfuscation_method = request.form.get('obfuscation_method')
+        return redirect(url_for('get_vpn_config', access_code=access_code, obfuscation_method=obfuscation_method))
+
+    return render_template_string('''
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+            <title>VPN Config Form</title>
+          </head>
+          <body>
+            <div class="container mt-5">
+                <h2>Введите код доступа и выберите метод обфускации</h2>
+                <form method="post">
+                    <div class="form-group">
+                        <label for="access_code">Код доступа из письма</label>
+                        <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Введите код доступа">
+                    </div>
+                    <div class="form-group">
+                        <label for="obfuscation_method">Метод обфускации</label>
+                        <select class="form-control" id="obfuscation_method" name="obfuscation_method">
+                            <option value="0">Без обфускации (не работает в России)</option>
+                            <option value="1">tls-crypt (требует OpenVPN 2.4+)</option>
+                            <option value="2">tls-crypt-v2 (требует OpenVPN 2.5+)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Получить конфигурацию VPN для роутера</button>
+                </form>
+            </div>
+          </body>
+        </html>
+    ''')
+
+@app.route('/get_vpn_config', methods=['GET'])
 def get_vpn_config():
-    access_code = request.form.get('access_code')
-    obfuscation_method = request.form.get('obfuscation_method')
+    access_code = request.args.get('access_code')
+    obfuscation_method = request.args.get('obfuscation_method')
     
     ua = UserAgent()
     headers = {'User-Agent': ua.random}
