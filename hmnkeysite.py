@@ -156,18 +156,53 @@ def get_vpn_config():
     soup = BeautifulSoup(response.text, 'html.parser')
     
     try:
-        # Получаем нужные данные
+        # Находим и заменяем элемент <div class="wcst_select__current" data-value="2"> на <div class="wcst_select__current" data-value="1">
+        select_current = soup.find('div', {'class': 'wcst_select__current', 'data-value': '2'})
+        if select_current:
+            app.logger.debug(f'Found select_current: {select_current}')
+            select_current['data-value'] = '1'
+            select_current.string = 'tls-crypt (требует OpenVPN 2.4+)'
+        else:
+            app.logger.warning('select_current not found or has different structure.')
+            return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти и заменить элемент выбора конфигурации</div></div>')
+
+        # Нажимаем кнопку "Получить настройки"
+        form_action = soup.find('button', {'class': 'btn btn_1 blue_btn js-form_submit_btn'})
+        if form_action:
+            app.logger.debug('Found form submit button')
+            form_data = {
+                'code': access_code,
+                'tls_version': '1'  # Заменяем на нужное значение
+            }
+            response = requests.post('https://hidxxx.name/vpn/router/', data=form_data, headers=headers)
+            response.raise_for_status()
+            app.logger.debug('Settings request sent successfully')
+        else:
+            app.logger.warning('Form submit button not found.')
+            return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти кнопку отправки формы</div></div>')
+
+        # Ждем 5 секунд для обработки на сервере
+        time.sleep(5)
+        
+        # Логирование содержимого страницы для отладки
+        app.logger.debug(f"Response content after submitting settings form: {response.text}")
+        
+        # Используем BeautifulSoup для парсинга HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Получаем нужные данные после нажатия кнопки "Получить настройки"
         description_tag = soup.find('span', class_='account_info')
         description = description_tag.text.strip() if description_tag else 'Не удалось найти описание'
         
-        server_tag = soup.find('span', class_='account_serverlist').find('span')
-        server = server_tag.text.strip() if server_tag else 'Не удалось найти сервер'
+        server_tag = soup.find('span', 'default_text')
+        server = server_tag.text.strip() if server_tag else 'Не удалось найти IP сервера'
         
         username_tag = soup.find('span', class_='account_number')
         username = username_tag.text.strip() if username_tag else 'Не удалось найти имя пользователя'
         
-        password_tag = soup.find('span', class_='account_password').find('span', class_='red')
+        password_tag = soup.find('span', class_='default_text')
         password = password_tag.text.strip() if password_tag else 'Не удалось найти пароль'
+        
     except Exception as e:
         app.logger.error(f"Error parsing VPN configuration data: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации VPN: {{ e }}</div></div>', e=e)
