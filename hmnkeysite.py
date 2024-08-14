@@ -1,13 +1,11 @@
 from flask import Flask, request, render_template_string, redirect, url_for, jsonify
-from flask_frozen import Freezer
+import time
 import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
-import re
 import logging
 
 app = Flask(__name__)
-freezer = Freezer(app)
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -126,19 +124,25 @@ def index():
 def get_vpn_config():
     access_code = request.form.get('access_code')
 
+    # Используем UserAgent для заголовков
     ua = UserAgent()
     headers = {'User-Agent': ua.random}
 
     try:
+        # Отправляем запрос с кодом доступа
         response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code}, headers=headers)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error sending request to VPN router page: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
 
+    # Ждем 3 секунды для обработки на сервере
+    time.sleep(3)
+
     # Логирование содержимого страницы для отладки
     app.logger.debug(f"Response content: {response.text}")
 
+    # Используем BeautifulSoup для парсинга HTML
     soup = BeautifulSoup(response.text, 'html.parser')
 
     try:
@@ -152,13 +156,13 @@ def get_vpn_config():
         username_tag = soup.find('span', class_='account_number')
         username = username_tag.text.strip() if username_tag else 'Не удалось найти имя пользователя'
 
-        password_hint_tag = soup.find('span', class_='default_text')
-        password_hint = password_hint_tag.text.strip() if password_hint_tag else 'Не удалось найти подсказку пароля'
+        password_tag = soup.find('span', class_='account_password').find('span', class_='red')
+        password = password_tag.text.strip() if password_tag else 'Не удалось найти пароль'
     except Exception as e:
         app.logger.error(f"Error parsing VPN configuration data: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации VPN: {{ e }}</div></div>', e=e)
 
-    app.logger.info(f"Parsed VPN configuration: description={description}, server={server}, username={username}, password_hint={password_hint}")
+    app.logger.info(f"Parsed VPN configuration: description={description}, server={server}, username={username}, password={password}")
 
     return render_template_string('''
         <!doctype html>
@@ -176,13 +180,13 @@ def get_vpn_config():
                     <li class="list-group-item"><strong>Описание:</strong> {{ description }}</li>
                     <li class="list-group-item"><strong>Сервер:</strong> {{ server }}</li>
                     <li class="list-group-item"><strong>Имя пользователя:</strong> {{ username }}</li>
-                    <li class="list-group-item"><strong>Подсказка пароля:</strong> {{ password_hint }}</li>
+                    <li class="list-group-item"><strong>Пароль:</strong> {{ password }}</li>
                 </ul>
                 <a href="/" class="btn btn-primary mt-3">Домой</a>
             </div>
           </body>
         </html>
-    ''', description=description, server=server, username=username, password_hint=password_hint)
+    ''', description=description, server=server, username=username, password=password)
 
 if __name__ == '__main__':
     app.run(debug=True)
