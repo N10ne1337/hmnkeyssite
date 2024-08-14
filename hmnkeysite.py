@@ -37,7 +37,7 @@ def index():
 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 confirmation_message = soup.find('h2', {'class': 'title'}).get_text(strip=True)
-                if "Ваш код выслан на" in confirmation_message:
+                if confirmation_message.startswith("Ваш код выслан") and " на " in confirmation_message:
                     return render_template_string('''
                         <!doctype html>
                         <html lang="en">
