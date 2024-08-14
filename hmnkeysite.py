@@ -139,7 +139,27 @@ def get_vpn_config():
     # Логирование содержимого страницы для отладки
     app.logger.debug(f"Response content: {response.text}")
 
-    # Вывод содержимого страницы на экран для отладки
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    try:
+        # Получаем нужные данные
+        description_tag = soup.find('span', class_='account_info')
+        description = description_tag.text.strip() if description_tag else 'Не удалось найти описание'
+
+        server_tag = soup.find('span', class_='account_serverlist')
+        server = server_tag.text.strip() if server_tag else 'Не удалось найти сервер'
+
+        username_tag = soup.find('span', class_='account_number')
+        username = username_tag.text.strip() if username_tag else 'Не удалось найти имя пользователя'
+
+        password_hint_tag = soup.find('span', class_='default_text')
+        password_hint = password_hint_tag.text.strip() if password_hint_tag else 'Не удалось найти подсказку пароля'
+    except Exception as e:
+        app.logger.error(f"Error parsing VPN configuration data: {e}")
+        return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации VPN: {{ e }}</div></div>', e=e)
+
+    app.logger.info(f"Parsed VPN configuration: description={description}, server={server}, username={username}, password_hint={password_hint}")
+
     return render_template_string('''
         <!doctype html>
         <html lang="en">
@@ -147,17 +167,22 @@ def get_vpn_config():
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
             <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-            <title>Отладка HTML</title>
+            <title>Конфигурация VPN</title>
           </head>
           <body>
             <div class="container mt-5">
-                <h2>Отладка HTML</h2>
-                <pre>{{ html_content }}</pre>
+                <h2>Конфигурация VPN для роутера</h2>
+                <ul class="list-group">
+                    <li class="list-group-item"><strong>Описание:</strong> {{ description }}</li>
+                    <li class="list-group-item"><strong>Сервер:</strong> {{ server }}</li>
+                    <li class="list-group-item"><strong>Имя пользователя:</strong> {{ username }}</li>
+                    <li class="list-group-item"><strong>Подсказка пароля:</strong> {{ password_hint }}</li>
+                </ul>
                 <a href="/" class="btn btn-primary mt-3">Домой</a>
             </div>
           </body>
         </html>
-    ''', html_content=response.text)
+    ''', description=description, server=server, username=username, password_hint=password_hint)
 
 if __name__ == '__main__':
     app.run(debug=True)
