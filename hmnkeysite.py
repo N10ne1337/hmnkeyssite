@@ -4,6 +4,7 @@ import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 import logging
+import re
 
 app = Flask(__name__)
 
@@ -23,11 +24,10 @@ def index():
         try:
             demo_page = requests.get('https://hidxxx.name/demo/', headers=headers, proxies=proxies)
             demo_page.raise_for_status()
+            app.logger.debug('Accessed demo page successfully')
         except requests.exceptions.RequestException as e:
             app.logger.error(f"Error accessing the site: {e}")
             return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка доступа к сайту: {{ e }}</div></div>', e=e)
-
-        app.logger.debug('Accessed demo page successfully')
 
         soup = BeautifulSoup(demo_page.text, 'html.parser')
         email_input = soup.find('input', {'class': 'input_text_field', 'name': 'demo_mail'})
@@ -38,16 +38,19 @@ def index():
             try:
                 response = requests.post('https://hidxxx.name/demo/success/', data={"demo_mail": email}, headers=headers, proxies=proxies)
                 response.raise_for_status()
+                app.logger.debug('Email sent successfully')
             except requests.exceptions.RequestException as e:
                 app.logger.error(f"Error sending request: {e}")
                 return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
 
-            app.logger.debug('Email sent successfully')
-
             soup = BeautifulSoup(response.text, 'html.parser')
-            confirmation_message = soup.find('h2', {'class': 'title'}).get_text(strip=True)
-            app.logger.debug(f'Confirmation message: {confirmation_message}')
-            
+            try:
+                confirmation_message = soup.find('h2', {'class': 'title'}).get_text(strip=True)
+                app.logger.debug(f'Confirmation message: {confirmation_message}')
+            except AttributeError as e:
+                app.logger.error(f"Error parsing confirmation message: {e}")
+                return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге подтверждающего сообщения: {{ e }}</div></div>', e=e)
+
             # Используем регулярное выражение для проверки текста
             if re.match(r'^Ваш код выслан\s*на\s*', confirmation_message):
                 app.logger.debug('Confirmation message received, code sent to email.')
@@ -141,11 +144,10 @@ def get_vpn_config():
         # Отправляем запрос с кодом доступа
         response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code}, headers=headers)
         response.raise_for_status()
+        app.logger.debug('Access code sent successfully, waiting for response')
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error sending request to VPN router page: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
-
-    app.logger.debug('Access code sent successfully, waiting for response')
 
     # Ждем 3 секунды для обработки на сервере
     time.sleep(3)
