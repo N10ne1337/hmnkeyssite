@@ -73,7 +73,7 @@ def index():
             <style>
                 .centered-header {
                     text-align: center;
-                    color: blue;
+                    color: #007bff; /* Цвет кнопки "Получить код" */
                 }
             </style>
             <title>HideMyName Keys (Beta)</title>
