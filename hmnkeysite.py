@@ -79,8 +79,9 @@ def index():
                                 <div class="form-group">
                                     <label for="obfuscation_method">Метод обфускации</label>
                                     <select class="form-control" id="obfuscation_method" name="obfuscation_method">
+                                        <option value="0">Без обфускации (не работает в России)</option>
                                         <option value="1">tls-crypt (требует OpenVPN 2.4+)</option>
-                                        <option value="2">tls-auth</option>
+                                        <option value="2">tls-crypt-v2 (требует OpenVPN 2.5+)</option>
                                     </select>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Получить конфигурацию VPN для роутера</button>
@@ -165,7 +166,7 @@ def get_vpn_config():
     
     try:
         # Извлекаем форму и отображаем её
-        form = soup.find('form', {'id': 'vpnForm'})
+        form = soup.find('form', {'class': 'js-form-settings-by-code'})
         if form:
             app.logger.debug('Found VPN form')
             form_html = str(form)
