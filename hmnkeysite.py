@@ -136,6 +136,9 @@ def get_vpn_config():
         app.logger.error(f"Error sending request to VPN router page: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
 
+    # Логирование содержимого страницы для отладки
+    app.logger.debug(f"Response content: {response.text}")
+
     soup = BeautifulSoup(response.text, 'html.parser')
 
     try:
