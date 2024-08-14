@@ -70,6 +70,12 @@ def index():
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
             <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+            <style>
+                .centered-header {
+                    text-align: center;
+                    color: blue;
+                }
+            </style>
             <title>HideMyName Keys (Beta)</title>
           </head>
           <body>
@@ -77,7 +83,7 @@ def index():
                 <div class="row justify-content-center">
                     <div class="col-md-6">
                         <div class="card">
-                            <div class="card-header">
+                            <div class="card-header centered-header">
                                 <h2>HideMyName Keys (Beta)</h2>
                             </div>
                             <div class="card-body">
@@ -102,4 +108,4 @@ def index():
     ''')
 
 if __name__ == '__main__':
-    freezer.freeze()
+    freezer.freeze() 
