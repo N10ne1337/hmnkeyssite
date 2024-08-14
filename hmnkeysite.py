@@ -136,10 +136,10 @@ def index():
 @app.route('/get_vpn_config', methods=['POST'])
 def get_vpn_config():
     access_code = request.form.get('access_code')
-
+    
     ua = UserAgent()
     headers = {'User-Agent': ua.random}
-
+    
     try:
         # Отправляем запрос с кодом доступа
         response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code}, headers=headers)
@@ -148,35 +148,32 @@ def get_vpn_config():
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error sending request to VPN router page: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
-
-    # Ждем 3 секунды для обработки на сервере
-    time.sleep(3)
-
+    
     # Логирование содержимого страницы для отладки
     app.logger.debug(f"Response content: {response.text}")
-
+    
     # Используем BeautifulSoup для парсинга HTML
     soup = BeautifulSoup(response.text, 'html.parser')
-
+    
     try:
         # Получаем нужные данные
         description_tag = soup.find('span', class_='account_info')
         description = description_tag.text.strip() if description_tag else 'Не удалось найти описание'
-
+        
         server_tag = soup.find('span', class_='account_serverlist').find('span')
         server = server_tag.text.strip() if server_tag else 'Не удалось найти сервер'
-
+        
         username_tag = soup.find('span', class_='account_number')
         username = username_tag.text.strip() if username_tag else 'Не удалось найти имя пользователя'
-
+        
         password_tag = soup.find('span', class_='account_password').find('span', class_='red')
         password = password_tag.text.strip() if password_tag else 'Не удалось найти пароль'
     except Exception as e:
         app.logger.error(f"Error parsing VPN configuration data: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации VPN: {{ e }}</div></div>', e=e)
-
+    
     app.logger.info(f"Parsed VPN configuration: description={description}, server={server}, username={username}, password={password}")
-
+    
     return render_template_string('''
         <!doctype html>
         <html lang="en">
