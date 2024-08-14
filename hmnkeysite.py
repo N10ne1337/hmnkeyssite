@@ -76,6 +76,13 @@ def index():
                                     <label for="access_code">Код доступа из письма</label>
                                     <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Введите код доступа">
                                 </div>
+                                <div class="form-group">
+                                    <label for="obfuscation_method">Метод обфускации</label>
+                                    <select class="form-control" id="obfuscation_method" name="obfuscation_method">
+                                        <option value="1">tls-crypt (требует OpenVPN 2.4+)</option>
+                                        <option value="2">tls-auth</option>
+                                    </select>
+                                </div>
                                 <button type="submit" class="btn btn-primary">Получить конфигурацию VPN для роутера</button>
                             </form>
                         </div>
@@ -136,6 +143,7 @@ def index():
 @app.route('/get_vpn_config', methods=['POST'])
 def get_vpn_config():
     access_code = request.form.get('access_code')
+    obfuscation_method = request.form.get('obfuscation_method')
     
     ua = UserAgent()
     headers = {'User-Agent': ua.random}
@@ -160,8 +168,11 @@ def get_vpn_config():
         select_current = soup.find('div', {'class': 'wcst_select__current', 'data-value': '2'})
         if select_current:
             app.logger.debug(f'Found select_current: {select_current}')
-            select_current['data-value'] = '1'
-            select_current.string = 'tls-crypt (требует OpenVPN 2.4+)'
+            select_current['data-value'] = obfuscation_method
+            if obfuscation_method == '1':
+                select_current.string = 'tls-crypt (требует OpenVPN 2.4+)'
+            elif obfuscation_method == '2':
+                select_current.string = 'tls-auth'
         else:
             # Логируем весь HTML-код страницы для анализа
             app.logger.debug(f'Full HTML content: {soup.prettify()}')
@@ -174,37 +185,40 @@ def get_vpn_config():
             app.logger.debug('Found form submit button')
             form_data = {
                 'code': access_code,
-                'tls_version': '1'  # Заменяем на нужное значение
+                'tls_version': obfuscation_method  # Используем выбранный метод обфускации
             }
+
+            # Отправляем форму с обновленными данными
             response = requests.post('https://hidxxx.name/vpn/router/', data=form_data, headers=headers)
             response.raise_for_status()
             app.logger.debug('Settings request sent successfully')
+
+            # Ждем 5 секунд для обработки на сервере
+            time.sleep(5)
+
+            # Логирование содержимого страницы для отладки
+            app.logger.debug(f"Response content after submitting settings form: {response.text}")
+
+            # Используем BeautifulSoup для парсинга HTML
+            soup = BeautifulSoup(response.text, 'html.parser')
+        
+            # Получаем нужные данные после нажатия кнопки "Получить настройки"
+            description_tag = soup.find('span', class_='account_info')
+            description = description_tag.text.strip() if description_tag else 'Не удалось найти описание'
+
+            server_tag = soup.find('span', 'default_text')
+            server = server_tag.text.strip() if server_tag else 'Не удалось найти IP сервера'
+
+            username_tag = soup.find('span', class_='account_number')
+            username = username_tag.text.strip() if username_tag else 'Не удалось найти имя пользователя'
+
+            password_tag = soup.find('span', class_='default_text')
+            password = password_tag.text.strip() if password_tag else 'Не удалось найти пароль'
+        
         else:
             app.logger.warning('Form submit button not found.')
             return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти кнопку отправки формы</div></div>')
 
-        # Ждем 5 секунд для обработки на сервере
-        time.sleep(5)
-        
-        # Логирование содержимого страницы для отладки
-        app.logger.debug(f"Response content after submitting settings form: {response.text}")
-        
-        # Используем BeautifulSoup для парсинга HTML
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Получаем нужные данные после нажатия кнопки "Получить настройки"
-        description_tag = soup.find('span', class_='account_info')
-        description = description_tag.text.strip() if description_tag else 'Не удалось найти описание'
-        
-        server_tag = soup.find('span', 'default_text')
-        server = server_tag.text.strip() if server_tag else 'Не удалось найти IP сервера'
-        
-        username_tag = soup.find('span', class_='account_number')
-        username = username_tag.text.strip() if username_tag else 'Не удалось найти имя пользователя'
-        
-        password_tag = soup.find('span', class_='default_text')
-        password = password_tag.text.strip() if password_tag else 'Не удалось найти пароль'
-        
     except Exception as e:
         app.logger.error(f"Error parsing VPN configuration data: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации VPN: {{ e }}</div></div>', e=e)
