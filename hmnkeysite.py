@@ -163,6 +163,8 @@ def get_vpn_config():
             select_current['data-value'] = '1'
             select_current.string = 'tls-crypt (требует OpenVPN 2.4+)'
         else:
+            # Логируем весь HTML-код страницы для анализа
+            app.logger.debug(f'Full HTML content: {soup.prettify()}')
             app.logger.warning('select_current not found or has different structure.')
             return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти и заменить элемент выбора конфигурации</div></div>')
 
