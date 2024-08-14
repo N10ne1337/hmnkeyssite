@@ -4,9 +4,13 @@ import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 import re
+import logging
 
 app = Flask(__name__)
 freezer = Freezer(app)
+
+# Настройка логирования
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -22,6 +26,7 @@ def index():
             demo_page = requests.get('https://hidxxx.name/demo/', headers=headers, proxies=proxies)
             demo_page.raise_for_status()
         except requests.exceptions.RequestException as e:
+            app.logger.error(f"Error accessing the site: {e}")
             return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка доступа к сайту: {{ e }}</div></div>', e=e)
 
         soup = BeautifulSoup(demo_page.text, 'html.parser')
@@ -32,6 +37,7 @@ def index():
                 response = requests.post('https://hidxxx.name/demo/success/', data={"demo_mail": email}, headers=headers, proxies=proxies)
                 response.raise_for_status()
             except requests.exceptions.RequestException as e:
+                app.logger.error(f"Error sending request: {e}")
                 return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
 
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -127,15 +133,20 @@ def get_vpn_config():
         response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code}, headers=headers)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
+        app.logger.error(f"Error sending request to VPN router page: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Получаем нужные данные
-    description = soup.find('strong', text='Описание').find_next_sibling(text=True).strip()
-    server = soup.find('li', text=re.compile(r'Сервер')).find('span', class_='account_serverlist').text.strip()
-    username = soup.find('strong', text='Имя пользователя').find_next_sibling(text=True).strip()
-    password_hint = soup.find('span', class_='default_text').text.strip()
+    try:
+        # Получаем нужные данные
+        description = soup.find('strong', text='Описание').next_sibling.strip()
+        server = soup.find('li', text=re.compile(r'Сервер')).find('span', class_='account_serverlist').text.strip()
+        username = soup.find('strong', text='Имя пользователя').next_sibling.strip()
+        password_hint = soup.find('span', class_='default_text').text.strip()
+    except Exception as e:
+        app.logger.error(f"Error parsing VPN configuration data: {e}")
+        return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации VPN: {{ e }}</div></div>', e=e)
 
     return render_template_string('''
         <!doctype html>
