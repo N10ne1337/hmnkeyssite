@@ -1,5 +1,4 @@
 from flask import Flask, request, render_template_string, redirect, url_for, jsonify
-import time
 import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
@@ -164,42 +163,65 @@ def vpn_config_form():
         </html>
     ''')
 
-@app.route('/get_vpn_config', methods=['GET'])
+@app.route('/get_vpn_config', methods=['GET', 'POST'])
 def get_vpn_config():
+    if request.method == 'POST':
+        access_code = request.form.get('access_code')
+        obfuscation_method = request.form.get('obfuscation_method')
+        
+        ua = UserAgent()
+        headers = {'User-Agent': ua.random}
+        
+        try:
+            # Отправляем запрос с кодом доступа и методом обфускации
+            response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code, "obfuscation": obfuscation_method}, headers=headers)
+            response.raise_for_status()
+            app.logger.debug('Access code sent successfully, waiting for response')
+        except requests.exceptions.RequestException as e:
+            app.logger.error(f"Error sending request to VPN router page: {e}")
+            return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
+        
+        # Логирование содержимого страницы для отладки
+        app.logger.debug(f"Response content: {response.text}")
+        
+        # Используем BeautifulSoup для парсинга HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        try:
+            # Извлекаем данные конфигурации
+            config_data = soup.find('div', {'class': 'config-data'})
+            if config_data:
+                config_html = str(config_data)
+            else:
+                app.logger.warning('Configuration data not found')
+                return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти данные конфигурации на сайте</div></div>')
+        except Exception as e:
+            app.logger.error(f"Error parsing configuration data: {e}")
+            return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации: {{ e }}</div></div>', e=e)
+
+        return render_template_string(f'''
+            <!doctype html>
+            <html lang="en">
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+                <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+                <title>VPN Configuration Data</title>
+              </head>
+              <body>
+                <div class="container mt-5">
+                    <h2>Данные конфигурации VPN</h2>
+                    <div class="config-data">
+                        {config_html}
+                    </div>
+                    <a href="/" class="btn btn-primary mt-3">Домой</a>
+                </div>
+              </body>
+            </html>
+        ''')
+    
     access_code = request.args.get('access_code')
     obfuscation_method = request.args.get('obfuscation_method')
-    
-    ua = UserAgent()
-    headers = {'User-Agent': ua.random}
-    
-    try:
-        # Отправляем запрос с кодом доступа
-        response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code}, headers=headers)
-        response.raise_for_status()
-        app.logger.debug('Access code sent successfully, waiting for response')
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Error sending request to VPN router page: {e}")
-        return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при отправке запроса: {{ e }}</div></div>', e=e)
-    
-    # Логирование содержимого страницы для отладки
-    app.logger.debug(f"Response content: {response.text}")
-    
-    # Используем BeautifulSoup для парсинга HTML
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    try:
-        # Извлекаем форму и отображаем её
-        form = soup.find('form', {'class': 'js-form-settings-by-code'})
-        if form:
-            app.logger.debug('Found VPN form')
-            form_html = str(form)
-            form_html = form_html.replace('<button', '<button class="btn btn_1 blue_btn js-form_submit_btn" type="submit"> Получить настройки </button>')
-        else:
-            app.logger.warning('VPN form not found')
-            return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти форму VPN на сайте</div></div>')
-    except Exception as e:
-        app.logger.error(f"Error parsing VPN form: {e}")
-        return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге формы VPN: {{ e }}</div></div>', e=e)
 
     return render_template_string(f'''
         <!doctype html>
@@ -213,10 +235,21 @@ def get_vpn_config():
           <body>
             <div class="container mt-5">
                 <h2>Форма для получения конфигурации VPN</h2>
-                {form_html}
-                <div class="form-group mt-3">
-                    <button class="btn btn_1 blue_btn js-form_submit_btn" type="submit"> Получить настройки </button>
-                </div>
+                <form method="post">
+                    <div class="form-group">
+                        <label for="access_code">Код доступа из письма</label>
+                        <input type="text" class="form-control" id="access_code" name="access_code" value="{access_code}" placeholder="Введите код доступа">
+                    </div>
+                    <div class="form-group">
+                        <label for="obfuscation_method">Метод обфускации</label>
+                        <select class="form-control" id="obfuscation_method" name="obfuscation_method">
+                            <option value="0" {"selected" if obfuscation_method == "0" else ""}>Без обфускации (не работает в России)</option>
+                            <option value="1" {"selected" if obfuscation_method == "1" else ""}>tls-crypt (требует OpenVPN 2.4+)</option>
+                            <option value="2" {"selected" if obfuscation_method == "2" else ""}>tls-crypt-v2 (требует OpenVPN 2.5+)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Получить настройки</button>
+                </form>
             </div>
           </body>
         </html>
