@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, redirect, url_for
 from flask_frozen import Freezer
 import requests
 from fake_useragent import UserAgent
@@ -55,16 +55,11 @@ def index():
                                 <div class="alert alert-info" role="alert">
                                     Ссылка подтверждения была отправлена на указанную почту. Перейдите по ней чтобы вам пришёл код на почту.
                                 </div>
-                                <form method="post">
-                                    <input type="hidden" name="proxy" value="{{ proxy }}">
-                                    <input type="hidden" name="email" value="{{ email }}">
-                                    <input type="hidden" name="confirm" value="https://hidxxx.name/demo/success/">
-                                    <button type="submit" class="btn btn-primary">Подтвердить</button>
-                                </form>
+                                <a href="/" class="btn btn-primary">Домой</a>
                             </div>
                           </body>
                         </html>
-                    ''', proxy=proxy, email=email)
+                    ''')
                 else:
                     return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Указанная почта не подходит для получения тестового периода. Ответ сервера: {{ response.text }}</div></div>', response=response)
             else:
