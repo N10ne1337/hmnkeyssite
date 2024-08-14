@@ -140,13 +140,22 @@ def get_vpn_config():
 
     try:
         # Получаем нужные данные
-        description = soup.find('strong', text='Описание').next_sibling.strip()
-        server = soup.find('li', text=re.compile(r'Сервер')).find('span', class_='account_serverlist').text.strip()
-        username = soup.find('strong', text='Имя пользователя').next_sibling.strip()
-        password_hint = soup.find('span', class_='default_text').text.strip()
+        description_tag = soup.find('strong', text='Описание')
+        description = description_tag.next_sibling.strip() if description_tag else 'Не удалось найти описание'
+
+        server_tag = soup.find('li', text=re.compile(r'Сервер'))
+        server = server_tag.find('span', class_='account_serverlist').text.strip() if server_tag else 'Не удалось найти сервер'
+
+        username_tag = soup.find('strong', text='Имя пользователя')
+        username = username_tag.next_sibling.strip() if username_tag else 'Не удалось найти имя пользователя'
+
+        password_hint_tag = soup.find('span', class_='default_text')
+        password_hint = password_hint_tag.text.strip() if password_hint_tag else 'Не удалось найти подсказку пароля'
     except Exception as e:
         app.logger.error(f"Error parsing VPN configuration data: {e}")
         return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации VPN: {{ e }}</div></div>', e=e)
+
+    app.logger.info(f"Parsed VPN configuration: description={description}, server={server}, username={username}, password_hint={password_hint}")
 
     return render_template_string('''
         <!doctype html>
