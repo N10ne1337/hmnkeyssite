@@ -50,7 +50,6 @@ def index():
                 app.logger.error(f"Error parsing confirmation message: {e}")
                 return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге подтверждающего сообщения: {{ e }}</div></div>', e=e)
 
-            # Используем регулярное выражение для проверки текста
             if re.match(r'^Ваш код выслан\s*на\s*', confirmation_message):
                 app.logger.debug('Confirmation message received, code sent to email.')
                 return render_template_string('''
@@ -200,27 +199,8 @@ def get_vpn_config():
             app.logger.error(f"Error parsing configuration data: {e}")
             return render_template_string('<div class="container"><div class="alert alert-danger" role="alert">Ошибка при парсинге данных конфигурации: {{ e }}</div></div>', e=e)
 
-        return render_template_string(f'''
-            <!doctype html>
-            <html lang="en">
-              <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-                <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-                <title>VPN Configuration Data</title>
-              </head>
-              <body>
-                <div class="container mt-5">
-                    <h2>Данные конфигурации VPN</h2>
-                    <div class="config-data">
-                        {config_html}
-                    </div>
-                    <a href="/" class="btn btn-primary mt-3">Домой</a>
-                </div>
-              </body>
-            </html>
-        ''')
-    
+        return redirect(url_for('display_vpn_config', config_html=config_html))
+
     access_code = request.args.get('access_code')
     obfuscation_method = request.args.get('obfuscation_method')
 
@@ -251,6 +231,30 @@ def get_vpn_config():
                     </div>
                     <button type="submit" class="btn btn-primary">Получить настройки</button>
                 </form>
+            </div>
+          </body>
+        </html>
+    ''')
+
+@app.route('/display_vpn_config')
+def display_vpn_config():
+    config_html = request.args.get('config_html')
+    return render_template_string(f'''
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+            <title>VPN Configuration Data</title>
+          </head>
+          <body>
+            <div class="container mt-5">
+                <h2>Данные конфигурации VPN</h2>
+                <div class="config-data">
+                    {config_html}
+                </div>
+                <a href="/" class="btn btn-primary mt-3">Домой</a>
             </div>
           </body>
         </html>
