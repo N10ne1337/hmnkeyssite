@@ -86,7 +86,11 @@ def index():
             <style>
                 .centered-header {
                     text-align: center;
-                    color: #007bff; /* Цвет кнопки "Получить код" */
+                    color: #007bff; /* Цвет заголовка */
+                }
+                .centered-button {
+                    display: flex;
+                    justify-content: center;
                 }
             </style>
             <title>HideMyName Keys (Beta)</title>
@@ -105,7 +109,9 @@ def index():
                                         <label for="email">Email</label>
                                         <input type="email" class="form-control" id="email" name="email" placeholder="Введите email" required>
                                     </div>
-                                    <button type="submit" class="btn btn-primary">Получить код</button>
+                                    <div class="centered-button">
+                                        <button type="submit" class="btn btn-primary">Получить код</button>
+                                    </div>
                                 </form>
                             </div>
                         </div>
