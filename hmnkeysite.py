@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, redirect, url_for, jsonify
+from flask import Flask, request, render_template_string, redirect, url_for
 import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
@@ -153,7 +153,7 @@ def vpn_config_form():
                         <select class="form-control" id="obfuscation_method" name="obfuscation_method">
                             <option value="0">Без обфускации (не работает в России)</option>
                             <option value="1">tls-crypt (требует OpenVPN 2.4+)</option>
-                            <option value="2">tls-crypt-v2 (требует OpenVPN 2.5+)</option>
+                            <option value="2" selected>tls-crypt-v2 (требует OpenVPN 2.5+)</option>
                         </select>
                     </div>
                     <button type="submit" class="btn btn-primary">Получить конфигурацию VPN для роутера</button>
@@ -174,7 +174,7 @@ def get_vpn_config():
         
         try:
             # Отправляем запрос с кодом доступа и методом обфускации
-            response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code, "obfuscation": obfuscation_method}, headers=headers)
+            response = requests.post('https://hidxxx.name/vpn/router/', data={"code": access_code, "tls_crypt": obfuscation_method}, headers=headers)
             response.raise_for_status()
             app.logger.debug('Access code sent successfully, waiting for response')
         except requests.exceptions.RequestException as e:
@@ -188,17 +188,13 @@ def get_vpn_config():
         soup = BeautifulSoup(response.text, 'html.parser')
         
         try:
-            # Попробуем найти и извлечь данные конфигурации
-            config_data = soup.find_all('pre')  # Замените на другой тег, если необходимо
+            # Извлечение данных конфигурации из формы
+            config_data = soup.find('div', class_='form_settings_by_code')
             if config_data:
-                config_html = ''.join(str(item) for item in config_data)
+                config_html = str(config_data)
             else:
-                config_data = soup.find_all('div', class_='config-class')  # Замените 'config-class' на правильный класс
-                if config_data:
-                    config_html = ''.join(str(item) for item in config_data)
-                else:
-                    app.logger.warning('Configuration data not found in <pre> or <div class="config-class">')
-                    return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти данные конфигурации на сайте</div></div>')
+                app.logger.warning('Configuration data not found in <div class="form_settings_by_code">')
+                return render_template_string('<div class="container"><div class="alert alert-warning" role="alert">Не удалось найти данные конфигурации на сайте</div></div>')
 
         except Exception as e:
             app.logger.error(f"Error parsing configuration data: {e}")
