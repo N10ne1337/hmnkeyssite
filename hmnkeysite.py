@@ -19,7 +19,7 @@ def index():
         headers = {'User-Agent': ua.random}
 
         try:
-            demo_page = requests.get('https://hidxxx.name/demo/', headers=headers)
+            demo_page = requests.get('https://hidxx.name/demo/', headers=headers)
             demo_page.raise_for_status()
             app.logger.debug('Accessed demo page successfully')
         except requests.exceptions.RequestException as e:
@@ -33,7 +33,7 @@ def index():
             app.logger.debug(f'Found email input field: {email_input}')
 
             try:
-                response = requests.post('https://hidxxx.name/demo/success/', data={"demo_mail": email}, headers=headers)
+                response = requests.post('https://hidxx.name/demo/success/', data={"demo_mail": email}, headers=headers)
                 response.raise_for_status()
                 app.logger.debug('Email sent successfully')
             except requests.exceptions.RequestException as e:
