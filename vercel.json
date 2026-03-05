@@ -1,23 +1,9 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "hmnkeysite.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb"
-      }
-    }
+    { "src": "hmnkeysite.py", "use": "@vercel/python" }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "hmnkeysite.py"
-    }
-  ],
-  "functions": {
-    "hmnkeysite.py": {
-      "runtime": "python3.12"
-    }
-  }
+    { "src": "/(.*)", "dest": "hmnkeysite.py" }
+  ]
 }
