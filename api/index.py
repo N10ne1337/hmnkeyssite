@@ -3,12 +3,12 @@ HideMyName Keys — Flask on Vercel
 Файл: api/index.py
 """
 
-from urllib.parse import urlparse
 from __future__ import annotations
 
 import os
 import re
 import requests
+from urllib.parse import urlparse
 from flask import Flask, request, render_template_string
 from bs4 import BeautifulSoup
 
@@ -24,7 +24,7 @@ MIRRORS = [
 DEFAULT_PROXY = os.environ.get("HMN_PROXY", "")
 REQUEST_TIMEOUT = 12
 
-# Пул реалистичных User-Agent (без fake_useragent)
+# Пул реалистичных User-Agent
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -254,7 +254,7 @@ def index():
         demo.raise_for_status()
     except requests.exceptions.RequestException as exc:
         return render_template_string(
-            TPL_ERR, msg=f"Ошибка: {exc}")
+            TPL_ERR, msg=f"Ошибка загрузки формы: {exc}")
 
     soup = BeautifulSoup(demo.text, "html.parser")
     if not _has_email_field(soup):
@@ -265,50 +265,47 @@ def index():
     data = _extract_hidden_fields(soup)
     data["demo_mail"] = email
 
-    # Определяем URL для POST
+    # Определяем URL для POST (всегда через наше зеркало)
     post_url = demo_url
     form_tag = soup.find("form")
     if form_tag and form_tag.get("action"):
         action = form_tag["action"]
         if action.startswith("http"):
-            from urllib.parse import urlparse
+            # Берём только path, домен подставляем от рабочего зеркала
             post_url = base + urlparse(action).path
         else:
             post_url = base + action
 
     session.headers["Referer"] = demo_url
 
+    # POST
     try:
-        resp = session.post(post_url, data=data,
-                            timeout=REQUEST_TIMEOUT)
+        resp = session.post(post_url, data=data, timeout=REQUEST_TIMEOUT,
+                            allow_redirects=True)
         resp.raise_for_status()
     except requests.exceptions.RequestException as exc:
         return render_template_string(
             TPL_ERR, msg=f"Ошибка отправки: {exc}")
 
     # Парсим ответ
-    result = BeautifulSoup(resp.text, "html.parser")
-    msg = _parse_confirmation(result)
+    result_soup = BeautifulSoup(resp.text, "html.parser")
+    msg = _parse_confirmation(result_soup)
 
-    if not msg:
-        return render_template_string(
-            TPL_ERR, msg="Не удалось распознать ответ сервера.")
-
-    ok_pattern = re.compile(
-        r"(код\s*(выслан|отправлен)"
-        r"|code\s*sent"
-        r"|ссылка\s*(отправлена|выслана))",
-        re.IGNORECASE)
-
-    if ok_pattern.search(msg):
+    if msg and re.search(r"(отправлен|проверьте|письмо|confirm|check|sent)",
+                         msg, re.I):
         return render_template_string(TPL_OK)
 
-    return render_template_string(TPL_ERR, msg=(
-        f"Ответ сервера: <strong>{msg}</strong><br><br>"
-        "Попробуйте другой email или прокси."))
+    if msg:
+        return render_template_string(TPL_ERR, msg=msg)
+
+    return render_template_string(
+        TPL_ERR,
+        msg="Неизвестный ответ сервера. Проверьте почту — возможно, письмо отправлено.")
 
 
-# Vercel ищет именно «app» — оставляем на уровне модуля
+@app.route("/health")
+def health():
+    return {"status": "ok"}авляем на уровне модуля
 # Для локального запуска:
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
