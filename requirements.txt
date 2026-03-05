@@ -3,3 +3,4 @@ Frozen-Flask
 requests
 fake_useragent
 beautifulsoup4
+vercel-wsgi>=1.0
