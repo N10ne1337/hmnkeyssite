@@ -16,11 +16,8 @@ from bs4 import BeautifulSoup
 # ──────────────────────────────────────────────
 
 MIRRORS = [
-    "hidemy.name",
-    "hidemy.io",
-    "hidemy.net",
-    "hidemyname.org",
-    "hidemyna.me",
+    "hide.mn",
+    "hidemyname.ru",
 ]
 
 DEFAULT_PROXY = os.environ.get("HMN_PROXY", "")
