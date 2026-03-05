@@ -3,13 +3,13 @@ HideMyName Keys — Flask on Vercel
 Файл: api/index.py
 """
 
-from __future__ import annotations
-
 import os
 import re
+import random
+import traceback
 import requests
 from urllib.parse import urlparse
-from flask import Flask, request, render_template_string
+from flask import Flask, request as flask_request, render_template_string
 from bs4 import BeautifulSoup
 
 # ──────────────────────────────────────────────
@@ -24,7 +24,6 @@ MIRRORS = [
 DEFAULT_PROXY = os.environ.get("HMN_PROXY", "")
 REQUEST_TIMEOUT = 12
 
-# Пул реалистичных User-Agent
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -57,12 +56,11 @@ app = Flask(__name__)
 #  Утилиты
 # ──────────────────────────────────────────────
 
-def _random_ua() -> str:
-    import random
+def _random_ua():
     return random.choice(USER_AGENTS)
 
 
-def _build_session(proxy: str = "") -> requests.Session:
+def _build_session(proxy=""):
     s = requests.Session()
     s.headers.update({
         "User-Agent": _random_ua(),
@@ -79,20 +77,20 @@ def _build_session(proxy: str = "") -> requests.Session:
     return s
 
 
-def _find_mirror(session: requests.Session) -> str | None:
+def _find_mirror(session):
     for domain in MIRRORS:
-        url = f"https://{domain}/demo/"
+        url = "https://{}/demo/".format(domain)
         try:
             r = session.get(url, timeout=REQUEST_TIMEOUT,
                             allow_redirects=True)
             if r.status_code == 200:
-                return f"https://{domain}"
+                return "https://{}".format(domain)
         except requests.exceptions.RequestException:
             continue
     return None
 
 
-def _extract_hidden_fields(soup: BeautifulSoup) -> dict:
+def _extract_hidden_fields(soup):
     fields = {}
     for inp in soup.find_all("input", attrs={"type": "hidden"}):
         name = inp.get("name")
@@ -101,7 +99,7 @@ def _extract_hidden_fields(soup: BeautifulSoup) -> dict:
     return fields
 
 
-def _has_email_field(soup: BeautifulSoup) -> bool:
+def _has_email_field(soup):
     if soup.find("input", attrs={"name": "demo_mail"}):
         return True
     if soup.find("input", attrs={"type": "email"}):
@@ -115,19 +113,19 @@ def _has_email_field(soup: BeautifulSoup) -> bool:
     return False
 
 
-def _validate_email(email: str) -> str | None:
+def _validate_email(email):
     if not email or "@" not in email:
         return "Введите корректный email."
     domain = email.rsplit("@", 1)[-1].lower().strip()
     if domain in DISPOSABLE_DOMAINS:
         return (
-            f"Домен <strong>{domain}</strong> — временная почта. "
-            "Сервис их отклоняет. Используйте обычную почту."
+            "Домен <strong>{}</strong> — временная почта. "
+            "Сервис их отклоняет. Используйте обычную почту.".format(domain)
         )
     return None
 
 
-def _parse_confirmation(soup: BeautifulSoup) -> str | None:
+def _parse_confirmation(soup):
     for sel in ["h2.title", "h2", ".message h2",
                 ".result-message", ".demo-result",
                 ".content h2", "p.title", ".alert"]:
@@ -143,27 +141,29 @@ def _parse_confirmation(soup: BeautifulSoup) -> str | None:
 #  Шаблоны (Bootstrap 5.3, тёмная тема)
 # ──────────────────────────────────────────────
 
-_HEAD = """<!DOCTYPE html>
-<html lang="ru" data-bs-theme="dark">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet">
-<title>HideMyName Keys</title>
-<style>
-body{min-height:100vh;display:flex;align-items:center}
-.card{border:none;border-radius:1rem;box-shadow:0 .5rem 1rem rgba(0,0,0,.35)}
-.card-header{border-radius:1rem 1rem 0 0!important}
-</style>
-</head><body><div class="container">
-<div class="row justify-content-center"><div class="col-lg-5 col-md-7">"""
+_HEAD = (
+    '<!DOCTYPE html>'
+    '<html lang="ru" data-bs-theme="dark"><head>'
+    '<meta charset="utf-8">'
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
+    '<title>HideMyName Keys</title>'
+    '<style>'
+    'body{min-height:100vh;display:flex;align-items:center}'
+    '.card{border:none;border-radius:1rem;box-shadow:0 .5rem 1rem rgba(0,0,0,.35)}'
+    '.card-header{border-radius:1rem 1rem 0 0!important}'
+    '</style>'
+    '</head><body><div class="container">'
+    '<div class="row justify-content-center"><div class="col-lg-5 col-md-7">'
+)
 
-_TAIL = """</div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-</script></body></html>"""
+_TAIL = (
+    '</div></div></div>'
+    '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>'
+    '</body></html>'
+)
 
-TPL_HOME = _HEAD + """
+TPL_HOME = _HEAD + '''
 <div class="card">
   <div class="card-header bg-primary text-white text-center py-3">
     <h4 class="mb-0">🔑 HideMyName Keys</h4></div>
@@ -195,9 +195,9 @@ TPL_HOME = _HEAD + """
   <div class="card-footer text-center">
     <small class="text-secondary">Зеркала проверяются автоматически</small>
   </div>
-</div>""" + _TAIL
+</div>''' + _TAIL
 
-TPL_OK = _HEAD + """
+TPL_OK = _HEAD + '''
 <div class="card">
   <div class="card-header bg-success text-white text-center py-3">
     <h4 class="mb-0">✅ Готово!</h4></div>
@@ -206,9 +206,9 @@ TPL_OK = _HEAD + """
     <p>Перейдите по ней — тестовый ключ придёт вторым письмом.</p>
     <a href="/" class="btn btn-outline-primary mt-2">← На главную</a>
   </div>
-</div>""" + _TAIL
+</div>''' + _TAIL
 
-TPL_ERR = _HEAD + """
+TPL_ERR = _HEAD + '''
 <div class="card">
   <div class="card-header bg-danger text-white text-center py-3">
     <h4 class="mb-0">⚠️ Ошибка</h4></div>
@@ -216,7 +216,7 @@ TPL_ERR = _HEAD + """
     <div class="alert alert-warning">{{ msg|safe }}</div>
     <a href="/" class="btn btn-outline-primary">← Назад</a>
   </div>
-</div>""" + _TAIL
+</div>''' + _TAIL
 
 # ──────────────────────────────────────────────
 #  Роуты
@@ -224,88 +224,96 @@ TPL_ERR = _HEAD + """
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == "GET":
-        return render_template_string(
-            TPL_HOME, error=None, proxy=DEFAULT_PROXY)
-
-    email = (request.form.get("email") or "").strip()
-    proxy = (request.form.get("proxy") or DEFAULT_PROXY).strip()
-
-    # Валидация
-    err = _validate_email(email)
-    if err:
-        return render_template_string(TPL_HOME, error=err, proxy=proxy)
-
-    # Сессия
-    session = _build_session(proxy)
-
-    # Зеркало
-    base = _find_mirror(session)
-    if not base:
-        return render_template_string(TPL_ERR, msg=(
-            "Ни одно зеркало не ответило.<br>"
-            "Попробуйте указать прокси или повторите позже.<br>"
-            f"<small>Домены: {', '.join(MIRRORS)}</small>"))
-
-    # GET /demo/
-    demo_url = f"{base}/demo/"
     try:
-        demo = session.get(demo_url, timeout=REQUEST_TIMEOUT)
-        demo.raise_for_status()
-    except requests.exceptions.RequestException as exc:
+        if flask_request.method == "GET":
+            return render_template_string(
+                TPL_HOME, error=None, proxy=DEFAULT_PROXY)
+
+        email = (flask_request.form.get("email") or "").strip()
+        proxy = (flask_request.form.get("proxy") or DEFAULT_PROXY).strip()
+
+        # Валидация
+        err = _validate_email(email)
+        if err:
+            return render_template_string(TPL_HOME, error=err, proxy=proxy)
+
+        # Сессия
+        session = _build_session(proxy)
+
+        # Зеркало
+        base = _find_mirror(session)
+        if not base:
+            return render_template_string(TPL_ERR, msg=(
+                "Ни одно зеркало не ответило.<br>"
+                "Попробуйте указать прокси или повторите позже.<br>"
+                "<small>Домены: {}</small>".format(", ".join(MIRRORS))))
+
+        # GET /demo/
+        demo_url = base + "/demo/"
+        try:
+            demo = session.get(demo_url, timeout=REQUEST_TIMEOUT)
+            demo.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            return render_template_string(
+                TPL_ERR, msg="Ошибка загрузки формы: {}".format(exc))
+
+        soup = BeautifulSoup(demo.text, "html.parser")
+        if not _has_email_field(soup):
+            return render_template_string(
+                TPL_ERR, msg="Поле email не найдено — вёрстка изменилась.")
+
+        # Формируем POST-данные
+        data = _extract_hidden_fields(soup)
+        data["demo_mail"] = email
+
+        # Определяем URL для POST
+        post_url = demo_url
+        form_tag = soup.find("form")
+        if form_tag and form_tag.get("action"):
+            action = form_tag["action"]
+            if action.startswith("http"):
+                post_url = base + urlparse(action).path
+            else:
+                post_url = base + action
+
+        session.headers["Referer"] = demo_url
+
+        # POST
+        try:
+            resp = session.post(post_url, data=data,
+                                timeout=REQUEST_TIMEOUT,
+                                allow_redirects=True)
+            resp.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            return render_template_string(
+                TPL_ERR, msg="Ошибка отправки: {}".format(exc))
+
+        # Парсим ответ
+        result_soup = BeautifulSoup(resp.text, "html.parser")
+        msg = _parse_confirmation(result_soup)
+
+        if msg and re.search(
+                r"(отправлен|проверьте|письмо|confirm|check|sent)",
+                msg, re.I):
+            return render_template_string(TPL_OK)
+
+        if msg:
+            return render_template_string(TPL_ERR, msg=msg)
+
         return render_template_string(
-            TPL_ERR, msg=f"Ошибка загрузки формы: {exc}")
+            TPL_ERR,
+            msg="Неизвестный ответ сервера. Проверьте почту — возможно, письмо отправлено.")
 
-    soup = BeautifulSoup(demo.text, "html.parser")
-    if not _has_email_field(soup):
+    except Exception:
+        tb = traceback.format_exc()
         return render_template_string(
-            TPL_ERR, msg="Поле email не найдено — вёрстка изменилась.")
-
-    # Формируем POST-данные
-    data = _extract_hidden_fields(soup)
-    data["demo_mail"] = email
-
-    # Определяем URL для POST (всегда через наше зеркало)
-    post_url = demo_url
-    form_tag = soup.find("form")
-    if form_tag and form_tag.get("action"):
-        action = form_tag["action"]
-        if action.startswith("http"):
-            # Берём только path, домен подставляем от рабочего зеркала
-            post_url = base + urlparse(action).path
-        else:
-            post_url = base + action
-
-    session.headers["Referer"] = demo_url
-
-    # POST
-    try:
-        resp = session.post(post_url, data=data, timeout=REQUEST_TIMEOUT,
-                            allow_redirects=True)
-        resp.raise_for_status()
-    except requests.exceptions.RequestException as exc:
-        return render_template_string(
-            TPL_ERR, msg=f"Ошибка отправки: {exc}")
-
-    # Парсим ответ
-    result_soup = BeautifulSoup(resp.text, "html.parser")
-    msg = _parse_confirmation(result_soup)
-
-    if msg and re.search(r"(отправлен|проверьте|письмо|confirm|check|sent)",
-                         msg, re.I):
-        return render_template_string(TPL_OK)
-
-    if msg:
-        return render_template_string(TPL_ERR, msg=msg)
-
-    return render_template_string(
-        TPL_ERR,
-        msg="Неизвестный ответ сервера. Проверьте почту — возможно, письмо отправлено.")
+            TPL_ERR,
+            msg="<pre>{}</pre>".format(tb)), 500
 
 
 @app.route("/health")
 def health():
-    return {"status": "ok"}авляем на уровне модуля
+    return {"status": "ok"}дуля
 # Для локального запуска:
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
