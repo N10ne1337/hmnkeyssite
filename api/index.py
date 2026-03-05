@@ -3,6 +3,7 @@ HideMyName Keys — Flask on Vercel
 Файл: api/index.py
 """
 
+from urllib.parse import urlparse
 from __future__ import annotations
 
 import os
@@ -269,8 +270,11 @@ def index():
     form_tag = soup.find("form")
     if form_tag and form_tag.get("action"):
         action = form_tag["action"]
-        post_url = action if action.startswith("http") \
-            else base + action
+        if action.startswith("http"):
+            from urllib.parse import urlparse
+            post_url = base + urlparse(action).path
+        else:
+            post_url = base + action
 
     session.headers["Referer"] = demo_url
 
